@@ -1,0 +1,5 @@
+$(function(){
+
+	$('#formLogin').validate();
+
+});

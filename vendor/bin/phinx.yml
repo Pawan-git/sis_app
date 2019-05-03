@@ -1,0 +1,36 @@
+paths:
+    migrations: '%%PHINX_CONFIG_DIR%%./vendor/./db/migrations'
+    #migrations: 'C:/xampp/htdocs/phonebook/db/migrations'
+    seeds: '%%PHINX_CONFIG_DIR%%/db/seeds'
+
+environments:
+    default_migration_table: phinxlog
+    default_database: phonebook
+    production:
+        adapter: mysql
+        host: localhost
+        name: phonebook
+        user: root
+        pass: ''
+        port: 3306
+        charset: utf8
+
+    development:
+        adapter: mysql
+        host: localhost
+        name: phonebook
+        user: root
+        pass: ''
+        port: 3306
+        charset: utf8
+
+    testing:
+        adapter: mysql
+        host: localhost
+        name: phonebook
+        user: root
+        pass: ''
+        port: 3306
+        charset: utf8
+
+version_order: creation
