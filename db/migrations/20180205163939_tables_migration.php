@@ -34,19 +34,22 @@ class TablesMigration extends AbstractMigration
             ->addColumn('user_name', 'string', ['limit' => 50])
             ->addColumn('user_email', 'string', ['limit' => 255])
             ->addColumn('user_password', 'string', ['limit' => 255])
+            ->addColumn('user_type', 'string', ['limit' => 255])
             ->addColumn('created_at', 'datetime', ['null' => true])
             ->addIndex(['user_email'], ['unique' => true])
             ->create();
 
         /* Create Table: contacts */
-        $user_table = $this->table('contacts', ['engine' => 'InnoDB', 'id' => false, 'primary_key' => ['contact_id']]);
-        $user_table->addColumn('contact_id', 'integer', ['limit' => 11, 'identity' => true])
-            ->addColumn('contact_name', 'string', ['limit' => 255])
-            ->addColumn('contact_number', 'string', ['limit' => 15])
-            ->addColumn('contact_note', 'string', ['limit' => 255])
+        $user_table = $this->table('emp_expense', ['engine' => 'InnoDB', 'id' => false, 'primary_key' => ['expense_id']]);
+        $user_table->addColumn('expense_id', 'integer', ['limit' => 11, 'identity' => true])
+            ->addColumn('expense_category', 'string', ['limit' => 255])
+            ->addColumn('expense_description', 'string', ['limit' => 255])
+            ->addColumn('pre_tax_amount', 'string', ['limit' => 255])
+            ->addColumn('tax_amount', 'string', ['limit' => 255])
+            ->addColumn('expense_date', 'date', ['null' => true])
             ->addColumn('created_at', 'datetime', ['null' => true])
+            ->addColumn('user_ref', 'integer', ['limit' => 11])
             ->create();
-
     }
 
     /**

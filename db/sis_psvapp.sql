@@ -62,7 +62,8 @@ CREATE TABLE `user` (
   `user_type` enum('ADMIN','EMP') NOT NULL DEFAULT 'EMP',
   `created_at` datetime NOT NULL,
   PRIMARY KEY (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
