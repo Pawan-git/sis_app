@@ -1,7 +1,7 @@
 .login-page .top200 {margin-top:200px;}
 .login-page .panel-title {font-weight: 600;}
 
-form#formLogin label.error{color:red;font-size: 12px;}
+form label.error{color:red;font-size: 12px;}
 
 body {
     font-family: sans-serif

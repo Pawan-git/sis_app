@@ -14,6 +14,12 @@ class MY_Controller extends CI_Controller
         $user = $this->session->userdata('user_data');
         return isset($user);
     }
+
+    public function is_admin()
+    {
+        $user = $this->session->userdata('user_data');
+        return (isset($user) && 'ADMIN' == $user['user_type']);
+    }
 	
 	public function get_csrf_token(){
 		

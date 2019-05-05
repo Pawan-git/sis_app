@@ -12,8 +12,14 @@ class Admin extends MY_Controller {
             // User is not logged in
 			redirect('user/login');
         }
+
+        if (!$this->is_admin())
+        {
+            // User is not logged in
+			redirect('404');
+        }
 		
-		$this->load->model('User_model');
+		$this->load->model('User_model', 'user_model');
 		$this->load->model('EmpExpense_model', 'emp_expense_model');
 		
 		$this->data = [];
@@ -22,11 +28,11 @@ class Admin extends MY_Controller {
 	
 	/*
 	*@method: index
-	*@return: render view--list all contacts
+	*@return: render view--list all expenses
 	*/
 	public function index()
 	{	
-		$this->data['title'] = 'Users :: Expenses';
+		$this->data['title'] = 'Expenses';
 
         $limit = $this->input->get('show', TRUE);
 		$page_num = $this->input->get('page', TRUE);
@@ -35,236 +41,183 @@ class Admin extends MY_Controller {
 			$total_rows = $this->data['limit'] = $this->limit = $limit;
 		}
 		
-		$offset = 0;
+		$this->data['offset'] = 0;
 		if($page_num){
-			$offset = $this->limit*((int)$page_num-1);
+			$this->data['offset'] = $this->limit*((int)$page_num-1);
 		}
 		
 		$query = $this->input->get('query', TRUE);
 		if(!empty($query))
 		{
-			$this->data['contacts'] = $this->emp_expense_model->search_contact($query, $offset, $this->limit);
+			$this->data['expenses'] = $this->emp_expense_model->searchExpenses($query, $this->data['offset'], $this->limit);
 			$this->data['query'] = $query;
 			$total_rows = $this->emp_expense_model->search_count($query);
 
 		}else{
 
-			$this->data['expenses'] = $this->emp_expense_model->getExpenses( $offset, $this->limit );
+			$this->data['expenses'] = $this->emp_expense_model->getExpenses( $this->data['offset'], $this->limit );
 			$total_rows = $this->emp_expense_model->count_all();
 		}
-		
-		#echo '<pre>'; print_r($this->data); die;
-		self::_paginate($baseurl=site_url('user'), $total_rows);
+	
+		self::_paginate($baseurl=site_url('admin'), $total_rows);
 		
 		$parser['content']  =   $this->load->view('admin/user-expenses',$this->data,TRUE);
 		$this->parser->parse('template', $parser);
 	}
+
+	/*
+	*@method: monthwise_expense
+	*@return: render view--list all month-wise total expense
+	*/
+	public function monthwise_expense()
+	{	
+		$this->data['title'] = 'Monthly Expenses';
+
+        $limit = $this->input->get('show', TRUE);
+		$page_num = $this->input->get('page', TRUE);
+		
+		if($limit){
+			$total_rows = $this->data['limit'] = $this->limit = $limit;
+		}
+		
+		$this->data['offset'] = 0;
+		if($page_num){
+			$this->data['offset'] = $this->limit*((int)$page_num-1);
+		}
+		
+		if( $this->input->get('from_month') && $this->input->get('from_year') && $this->input->get('to_month') && $this->input->get('to_month') )
+		{
+			$where = [
+				'DATE_FORMAT(expense_date, "%Y-%m") >= ' => date( 'Y-m', strtotime($this->input->get('from_year').'-'.$this->input->get('from_month')) ),
+				'DATE_FORMAT(expense_date, "%Y-%m") <= ' => date( 'Y-m', strtotime($this->input->get('to_year').'-'.$this->input->get('to_month')) )
+			];
+			$this->data['expenses'] = $this->emp_expense_model->searchExpensesMonthwise($where, $this->data['offset'], $this->limit);
+			
+			$total_rows = $this->emp_expense_model->searchCountMonthwise($where);
+
+		}else{
+
+			$this->data['expenses'] = $this->emp_expense_model->getExpensesMonthwise( $this->data['offset'], $this->limit );
+			$total_rows = $this->emp_expense_model->countMonthwise();
+		}
+		
+		self::_paginate($baseurl=site_url('admin'), $total_rows);
+		
+		$parser['content']  =   $this->load->view('admin/expenses-monthwise',$this->data,TRUE);
+		$this->parser->parse('template', $parser);
+	}
 	
 	/*
-	*@method: add
-	* function will add a contact
+	*@method: upload_expense_file
+	* function will add the expenses records into DB from uploaded file
 	*@return: json
 	*/
 	public function upload_expense_file()
 	{
-		$response = array();
-		
-		$this->load->helper(array('form'));
-		
-		$this->load->helper('security');
-
-        $this->load->library('form_validation');
-		
-		$config = array(
-				array(
-						'field' => 'contact_name',
-						'label' => 'Name',
-						'rules' => 'trim|required'
-
-				),
-				array(
-						'field' => 'contact_number',
-						'label' => 'Phone Number',
-						'rules'=>'trim|required|regex_match[/^[0-9]{10}$/]',
-						'errors' => array(
-								'regex_match' => 'Not a valid 10 digit number.',
-						),
-				),
-				array(
-						'field' => 'contact_note',
-						'label' => 'Additional Note', 
-						'rules' => 'trim'
-				)
-		);
-		
-		$this->form_validation->set_rules($config);
-
-		if ($this->form_validation->run() == FALSE)
-		{
-			$errors = validation_errors();
-			$response['status'] = 'FALSE';
-			$response['data'] = array('error_message'=>$errors, 'csrf'=>$this->get_csrf_token());
-			
+		if (empty($_FILES) ){
+			redirect('admin');
 		}
-		else
-		{
-			$contact_name = $this->input->post('contact_name', TRUE); // TRUE enables the xss filtering
-			$contact_number = $this->input->post('contact_number', TRUE);
-			$contact_note = $this->input->post('contact_note', TRUE);
 
-			$data = array(
-				'contact_name' => $contact_name,
-				'contact_number' => $contact_number,
-				'contact_note' => $contact_note,
-				'created_at' => date('Y-m-d h:i:s'),
-			);
-			
-			$insert = $this->contacts_model->contact_add($data);
-			
-			$response['status'] = 'TRUE';
-			$response['data'] = array('message'=>'Saved successfully!');
-	
+		$allowed =  array('psv');
+		$filename = $_FILES['expense_file']['name'];
+		$ext = pathinfo($filename, PATHINFO_EXTENSION);
+		if(!in_array($ext,$allowed) ) {
+			$this->session->set_flashdata('error_msg','Please choose a valid file.');
+		    redirect('admin');
 		}
+
+        $file = $_FILES['expense_file']['tmp_name'];
+        $h = fopen($file, "rt");
+		$exepense_array = [];
+		while (!feof($h)) { 
+		    $exepense_array[] = explode('|', rtrim(fgets($h), "\n"));
+
+		} 
+		fclose($h); 
 		
-		echo json_encode($response);
+		unset($exepense_array[0]);
+
+		$expense_data = [];
+		$created_at = date('Y-m-d H:i:s');
+		foreach ($exepense_array as $row) :
+			# code...
+			$address_parts = preg_split('/\s+/', $row[3]);
+			$username = strtolower(preg_replace('/\s+/', '_', $row[2])) .$address_parts[0].end($address_parts);
+
+			$userInfo = $this->user_model->getUserInfo($select_str='user_id', $whereCondn=['username'=>$username]);
+			if( empty($userInfo) ){
+				$user_data = [
+					'username' => $username,
+					'fullname' => $row[2],
+					'password' => sha1($username),
+					'address' => $row[3],
+					'user_type' => 'EMP',
+					'created_at' => $created_at
+				];
+
+				$user_id = $this->user_model->saveUser($user_data);
+			}else{
+				$user_id = $userInfo['user_id'];
+			}
+			
+			$expense_data[] = [
+				'expense_category' => $row[1],
+				'expense_description' => $row[4],
+				'pre_tax_amount' => $row[5],
+				'tax_amount' => $row[6],
+				'expense_date' => date('Y-m-d', strtotime($row[0])),
+				'user_ref' => $user_id,
+				'created_at' => $created_at
+			];
+
+		endforeach;
 		
+		if( !empty($expense_data) ){
+			$this->emp_expense_model->saveBatch($expense_data);
+		}
+
+		redirect('admin');
+
 	}
 	
 	/*
-	*@method: edit:- function will edit a contact
-	*@params: $id{integer}
-	*@return: json
+	*@method: user_list:- function will list users
+	*@return: renser view
 	*/
-	public function edit($id)
+	public function user_list()
 	{
-		$data = $this->contacts_model->get_by_id($id);
-		$response['status'] = 'TRUE';
-		$response['data'] = $data;
-		
-		echo json_encode($response);
-	}
-	
-	/*
-	*@method: update:- function will update a contact
-	*@params: $id{integer}
-	*@return: json
-	*/
-	public function update()
-	{
-		$response = array();
-		
-		$this->load->helper(array('form'));
-		
-		$this->load->helper('security');
+		$this->data['title'] = 'Users';
 
-        $this->load->library('form_validation');
+        $limit = $this->input->get('show', TRUE);
+		$page_num = $this->input->get('page', TRUE);
 		
-		$config = array(
-				array(
-						'field' => 'contact_name',
-						'label' => 'Contact Name',
-						'rules' => 'trim|required'
-				),
-				array(
-						'field' => 'contact_number',
-						'label' => 'Contact Number',
-						'rules'=>'required|regex_match[/^[0-9]{10}$/]',
-						/*'rules' => 'trim|required',
-						 'errors' => array(
-								'required' => 'You must provide a %s.',
-						), */
-				),
-				array(
-						'field' => 'contact_note',
-						'label' => 'Additional Note',
-						'rules' => 'trim'
-				)
-		);
-		
-		$this->form_validation->set_rules($config);
-
-		if ($this->form_validation->run() == FALSE)
-		{
-			$errors = validation_errors();
-			$response['status'] = 'FALSE';
-			$response['data'] = array('error_message'=>$errors, 'csrf'=>$this->get_csrf_token());
-			//redirect('contacts');
-		}
-		else
-		{
-			$contact_name = $this->input->post('contact_name', TRUE); // TRUE enables the xss filtering
-			$contact_number = $this->input->post('contact_number', TRUE);
-			$contact_note = $this->input->post('contact_note', TRUE);
-			$contact_id = $this->input->post('contact_id', TRUE);
-
-			$data = array(
-				'contact_name' => $contact_name,
-				'contact_number' => $contact_number,
-				'contact_note' => $contact_note
-			);
-			
-			$insert = $this->contacts_model->contact_update(array('contact_id' => $contact_id), $data);
-			
-			$response['status'] = 'TRUE';
-			$response['data'] = array('message'=>'Updated successfully!');
-	
+		if($limit){
+			$total_rows = $this->data['limit'] = $this->limit = $limit;
 		}
 		
-		echo json_encode($response);
+		$this->data['offset'] = 0;
+		if($page_num){
+			$this->data['offset'] = $this->limit*((int)$page_num-1);
+		}
 		
-	}
-	
-	/*
-	*@method: edit
-	* function will delete a contact
-	*@return: json
-	*/
-	public function delete_contact()
-	{
-		$contact_id = $this->input->post('contact_id', TRUE);
-		$this->contacts_model->delete_by_id($contact_id);
-		
-		echo json_encode(
-		array("status" => 'TRUE', 
-				'data'=>array('csrf'=>$this->get_csrf_token())
-			));
-	}
-	
-	protected function _paginate($baseurl, $total_rows){
-		
-		$this->load->library('pagination');
+		$query = $this->input->get('query', TRUE);
+		if(!empty($query))
+		{
+			$this->data['user_list'] = $this->user_model->searchUser($query, $this->data['offset'], $this->limit);
+			$this->data['query'] = $query;
+			$total_rows = $this->user_model->search_count($query);
 
-		$config['base_url'] = $baseurl;
-		$config['total_rows'] = $total_rows;
-		$config['page_query_string'] = TRUE;
-		$config['per_page'] = $this->limit;
-		$config['full_tag_open'] = '<ul class="pagination">';
-		$config['full_tag_close'] = '</ul>';
-		$config['num_tag_open'] = '<li>';
-		$config['num_tag_close'] = '</li>';
-		
-		$config['prev_tag_open'] = '<li>';
-		$config['prev_tag_close'] = '</li>';
-		
-		$config['next_tag_open'] = '<li>';
-		$config['next_tag_close'] = '</li>';
-		
-		$config['cur_tag_open'] = '<li class="active"><a>';
-		$config['cur_tag_close'] = '</a></li>';
-		
-		$config['first_tag_open'] = '<li>';
-		$config['first_tag_close'] = '</li>';
-		
-		$config['last_tag_open'] = '<li>';
-		$config['last_tag_close'] = '</li>';
-		
-		$config['use_page_numbers'] = TRUE;
-		$config['query_string_segment'] = 'page';
-		
-		$config['reuse_query_string'] = true;
+		}else{
 
-		$this->pagination->initialize($config);
+			$this->data['user_list'] = $this->user_model->getUserList( $this->data['offset'], $this->limit );
+			$total_rows = $this->user_model->count_all();
+		}
+		
+		self::_paginate($baseurl=site_url('admin/user-list'), $total_rows);
+		
+		$parser['content']  =   $this->load->view('admin/user-list',$this->data,TRUE);
+		$this->parser->parse('template', $parser);
 	}
 	
-	
+		
 } // END: class Phonebook

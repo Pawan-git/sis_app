@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title><?php echo $title; ?></title>
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" media="screen" title="no title">
+    <link rel="stylesheet" href="<?php echo base_url('assets/bootstrap/css/bootstrap.min.css')?>" media="screen" title="no title">
     <link rel="stylesheet" href="<?php echo base_url('assets/css/custom.css')?>" media="screen" title="no title">
       
   </head>
@@ -54,7 +54,7 @@
  
                         </fieldset>
                    
-                <center><b>Not registered ?</b> <br></b><a href="<?php echo base_url('user/signup'); ?>">Register here</a></center>
+                <!--<center><b>Not registered ?</b> <br></b><a href="<?php echo base_url('user/signup'); ?>">Register here</a></center>-->
  
                 </div>
             </div>
@@ -62,9 +62,9 @@
     </div>
 </div>
  
-<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-<script src="//cdn.jsdelivr.net/npm/jquery-validation@1.17.0/dist/jquery.validate.min.js"></script>
- 
+<script src="<?php echo base_url('assets/js/plugins/jquery-1.11.1.min.js')?>"></script>
+<script src="<?php echo base_url('assets/js/plugins/jquery.validate.min.js')?>"></script>
+
  <script type="text/javascript">
  
  $(function(){

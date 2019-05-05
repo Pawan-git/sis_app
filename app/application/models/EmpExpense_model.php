@@ -14,6 +14,16 @@ class EmpExpense_model extends CI_model{
 	}
 	
 	/*
+	*@method: saveBatch: Insert batch
+	*@return: boolean
+	*/
+	public function saveBatch($expense_data)
+	{
+		$this->db->insert_batch($this->table, $expense_data);
+		return true;
+	}
+
+	/*
 	*@method: count_all: count all records
 	*@return: number
 	*/
@@ -27,104 +37,82 @@ class EmpExpense_model extends CI_model{
 	}
 
 	/*
-	*@method: get_all_contact
-	*@params: $email{String}
-	*@params: $pass{String}
-	*@return: array of contacts
+	*@method: getExpensesWhere
+	*@params: $offset{Integer}
+	*@params: $limit{Integer}
+	*@params: $where{Array}
+	*@return: array of expenses
 	*/
-	public function getExpenseByUser($user_id, $offset, $limit=false)
+	public function getExpensesWhere($offset, $limit=false, $where=false)
 	{
-		$this->db->from($this->table)
-				->where(['user_ref'=>$user_id])
+		$this->db->select('expense_id, expense_category, expense_description, pre_tax_amount, tax_amount, expense_date')
+				->from($this->table)
 				->order_by("expense_date", "DESC");
+		if($where){
+			$this->db->where($where);
+		}
 		if($limit)
 			$this->db->limit($limit, $offset);
 		
 		$query = $this->db->get();
-		
+		/*echo $this->db->last_query(); die;*/
 		return $query->result();
-	}
-	
-	/*
-	*@method: get_all_contact
-	*@params: $email{String}
-	*@params: $pass{String}
-	*@return: array of contacts
-	*/
-	public function getExpenses($offset, $limit=false)
-	{
-		$this->db->from($this->table);
-		$this->db->order_by("expense_date", "DESC");
-		if($limit)
-			$this->db->limit($limit, $offset);
-		
-		$query = $this->db->get();
-		
-		return $query->result();
-	}
- 
-	/*
-	*@method: get_by_id
-	*@params: $id{int}
-	*@return: row
-	*/
-	public function get_by_id($id)
-	{
-		$this->db->from($this->table);
-		$this->db->where('contact_id',$id);
-		$query = $this->db->get();
- 
-		return $query->row();
-	}
- 
- 	/*
-	*@method: contact_add
-	*@params: $data{array}
-	*@return: boolean
-	*/
-	public function contact_add($data)
-	{
-		$this->db->insert($this->table, $data);
-		return $this->db->insert_id();
-	}
-	
- 	/*
-	*@method: contact_update
-	*@params: $where{array}
-	*@params: $data{String}
-	*@return: integer
-	*/
-	public function contact_update($where, $data)
-	{
-		$this->db->update($this->table, $data, $where);
-		return $this->db->affected_rows();
-	}
- 
-	/*
-	*@method: delete_by_id
-	*@params: $id{int}
-	*@return: boolean
-	*/
-	public function delete_by_id($id)
-	{
-		$this->db->where('contact_id', $id);
-		return $this->db->delete($this->table);
 	}
 
 	/*
-	*@method: search_contact
-	*@params: $search_query{String}
-	*@return: array of contacts
+	*@method: countExpensesWhere
+	*@params: $where{Array}
+	*@return: array of expenses
 	*/
-	public function search_contact($search_query, $offset, $limit=false)
+	public function countExpensesWhere($where=false)
 	{
-		$this->db->from($this->table)
-				->like('contact_name',$search_query)
-				->or_like('contact_number',$search_query)
-				->or_like('contact_note',$search_query)
-				->or_like('created_at',date('Y-m-d', strtotime($search_query)));
-				
-		$this->db->order_by("contact_name", "ASC");
+		$this->db->select('expense_id, expense_category, expense_description, pre_tax_amount, tax_amount, expense_date')
+			->from($this->table);
+		if($where){
+			$this->db->where($where);
+		}
+		
+		$query = $this->db->get();
+		
+		return $query->num_rows();
+	}
+	
+	/*
+	*@method: getExpenses
+	*@params: $offset{Integer}
+	*@params: $limit{Integer}
+	*@return: array of expenses
+	*/
+	public function getExpenses($offset, $limit=false)
+	{	
+		$this->db->select('expense_id, expense_category, expense_description, pre_tax_amount, tax_amount, expense_date, user.fullname as emp_name, user.address as emp_address')
+			->from($this->table)
+			->join('user','user_ref = user_id','LEFT')
+			->order_by("expense_date", "DESC");
+		if($limit)
+			$this->db->limit($limit, $offset);
+		
+		$query = $this->db->get();
+		
+		return $query->result();
+	}
+
+	/*
+	*@method: searchExpenses
+	*@params: $search_query{String}
+	*@return: array of objects
+	*/
+	public function searchExpenses($search_query, $offset, $limit=false)
+	{
+		$this->db->select('expense_id, expense_category, expense_description, pre_tax_amount, tax_amount, expense_date, user.fullname as emp_name, user.address as emp_address')
+			->from($this->table)
+			->join('user','user_ref = user_id','LEFT')
+			->like('expense_category',$search_query)
+			->or_like('expense_description',$search_query)
+			->or_like('fullname',$search_query)
+			/*->or_like('created_at',date('Y-m-d', strtotime($search_query)))*/
+			->order_by("expense_date", "DESC");
+
 		if($limit)
 			$this->db->limit($limit, $offset);
 		
@@ -142,18 +130,96 @@ class EmpExpense_model extends CI_model{
 	public function search_count($search_query)
 	{
 		$this->db->from($this->table)
-				->like('contact_name',$search_query)
-				->or_like('contact_number',$search_query)
-				->or_like('contact_note',$search_query)
-				->or_like('created_at',date('Y-m-d', strtotime($search_query)));
+				->join('user','user_ref = user_id','LEFT')
+				->like('expense_category',$search_query)
+				->or_like('expense_description',$search_query)
+				->or_like('fullname',$search_query);
+				/*->or_like('created_at',date('Y-m-d', strtotime($search_query)));*/
 		
 		$query = $this->db->get();
-		
 		return $query->num_rows();
 		
 	}
  
-		
+	/*
+	*@method: getExpensesMonthwise
+	*@params: $offset{Integer}
+	*@params: $limit{Integer}
+	*@return: array of expenses
+	*/
+	public function getExpensesMonthwise($offset, $limit=false, $user_id=false)
+	{	
+		$this->db->select('sum(pre_tax_amount) as pre_tax_amount, sum(tax_amount) as tax_amount, DATE_FORMAT(expense_date, "%Y-%m") as expense_year_month')
+			->from($this->table)
+			->group_by('expense_year_month')
+			->order_by("expense_year_month", "DESC");
 
+		if($user_id)
+			$this->db->where(['user_ref'=>$user_id]);
+			
+		if($limit)
+			$this->db->limit($limit, $offset);
+		
+		$query = $this->db->get();
+		return $query->result();
+	}
+
+	/*
+	*@method: countMonthwise: count monthly records
+	*@return: number
+	*/
+	public function countMonthwise($user_id=false)
+	{	
+		$this->db->select('DATE_FORMAT(expense_date, "%Y-%m") as expense_year_month')
+			->from($this->table)
+			->group_by('expense_year_month');
+
+		if($user_id)
+			$this->db->where(['user_ref'=>$user_id]);
+
+		$query = $this->db->get();
+		
+		return $query->num_rows();
+	}
+
+	/*
+	*@method: searchExpensesMonthwise
+	*@params: $whereCondn{Array}
+	*@return: array of objects
+	*/
+	public function searchExpensesMonthwise($whereCondn, $offset, $limit=false)
+	{
+		$this->db->select('sum(pre_tax_amount) as pre_tax_amount, sum(tax_amount) as tax_amount, DATE_FORMAT(expense_date, "%Y-%m") as expense_year_month')
+			->from($this->table)
+			->where($whereCondn)
+			->group_by('expense_year_month')
+			->order_by("expense_year_month", "DESC");
+
+		if($limit)
+			$this->db->limit($limit, $offset);
+		
+		$query = $this->db->get();
+		#echo $this->db->last_query(); die;
+		return $query->result();
+		
+	}
+ 
+	/*
+	*@method: searchCountMonthwise
+	*@params: $$whereCondn{Array}
+	*@return: number: row count
+	*/
+	public function searchCountMonthwise($whereCondn)
+	{
+		$this->db->select('sum(pre_tax_amount) as pre_tax_amount, sum(tax_amount) as tax_amount, DATE_FORMAT(expense_date, "%Y-%m") as expense_year_month')
+			->from($this->table)
+			->where($whereCondn)
+			->group_by('expense_year_month');
+		
+		$query = $this->db->get();
+		return $query->num_rows();
+		
+	}
+ 	
 } // END Class: EmpExpense_model
 
