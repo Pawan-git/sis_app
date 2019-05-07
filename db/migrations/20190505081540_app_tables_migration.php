@@ -34,7 +34,8 @@ class AppTablesMigration extends AbstractMigration
             ->addColumn('username', 'string', ['limit' => 255])
             ->addColumn('fullname', 'string', ['limit' => 255])
             ->addColumn('password', 'string', ['limit' => 255])
-            ->addColumn('address', 'string', ['limit' => 255])
+            ->addColumn('address', 'text', ['limit' => 255])
+            ->addColumn('user_type', 'enum',['values' =>['ADMIN', 'EMP']])
             ->addColumn('created_at', 'datetime', ['null' => true])
             ->addIndex(['username'], ['unique' => true])
             ->create();
@@ -43,12 +44,34 @@ class AppTablesMigration extends AbstractMigration
         $emp_expense = $this->table('emp_expense', ['engine' => 'InnoDB', 'id' => false, 'primary_key' => ['expense_id']]);
         $emp_expense->addColumn('expense_id', 'integer', ['limit' => 11, 'identity' => true])
                 ->addColumn('expense_category', 'string', ['limit' => 255])
-                ->addColumn('expense_description', 'string', ['limit' => 255])
-                ->addColumn('pre_tax_amount', 'string', ['limit' => 255])
-                ->addColumn('tax_amount', 'string', ['limit' => 255])
+                ->addColumn('expense_description', 'text', ['limit' => 255])
+                ->addColumn('pre_tax_amount', 'decimal', ['precision' => 10, 'scale'=>2])
+                ->addColumn('tax_amount', 'decimal', ['precision' => 10, 'scale'=>2])
                 ->addColumn('expense_date', 'date', ['null' => true])
                 ->addColumn('created_at', 'datetime', ['null' => true])
                 ->addColumn('user_ref', 'integer', ['limit' => 11])
                 ->create();
+				
+		$refTable = $this->table('emp_expense');
+        $refTable->addForeignKey('user_ref', 'user', 'user_id', ['delete'=> 'NO_ACTION', 'update'=> 'NO_ACTION'])
+                 ->save();
+			
     }
+	
+	 /**
+     * Migrate Up.
+     */
+    public function up()
+    {
+        
+    }
+
+    /**
+     * Migrate Down.
+     */
+    public function down()
+    {
+
+    }
+	
 }

@@ -1,15 +1,15 @@
 paths:
     migrations: '%%PHINX_CONFIG_DIR%%./vendor/./db/migrations'
-    #migrations: 'C:/xampp/htdocs/phonebook/db/migrations'
+    #migrations: 'C:/xampp/htdocs/sisapp/db/migrations'
     seeds: '%%PHINX_CONFIG_DIR%%/db/seeds'
 
 environments:
     default_migration_table: phinxlog
-    default_database: phonebook
+    default_database: sis_psvapp
     production:
         adapter: mysql
         host: localhost
-        name: phonebook
+        name: sis_psvapp
         user: root
         pass: ''
         port: 3306
@@ -18,7 +18,7 @@ environments:
     development:
         adapter: mysql
         host: localhost
-        name: phonebook
+        name: sis_psvapp
         user: root
         pass: ''
         port: 3306
@@ -27,7 +27,7 @@ environments:
     testing:
         adapter: mysql
         host: localhost
-        name: phonebook
+        name: sis_psvapp
         user: root
         pass: ''
         port: 3306
